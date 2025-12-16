@@ -249,6 +249,83 @@ async def run_multi_agents():
     return await execute_multi_agents(manager)
 
 
+class MultiAgentRequest(BaseModel):
+    """Request model for multi-agent research."""
+    query: str
+    max_sections: int = 3
+    model: str = "xai:grok-3-mini"
+    source: str = "web"
+    follow_guidelines: bool = False
+    guidelines: list = []
+    include_human_feedback: bool = False
+    verbose: bool = True
+    language: str = "english"
+    report_format: str = "APA"
+
+
+@app.post("/api/research")
+async def run_research(request: MultiAgentRequest, background_tasks: BackgroundTasks):
+    """
+    Run multi-agent research and return the report.
+    
+    This is the main API endpoint for conducting research from external applications.
+    
+    Example request:
+    ```json
+    {
+        "query": "What are the best practices for API authentication?",
+        "max_sections": 3,
+        "model": "xai:grok-3-mini"
+    }
+    ```
+    """
+    from multi_agents.agents import ChiefEditorAgent
+    import uuid
+    
+    # Build task configuration
+    task = {
+        "query": request.query,
+        "max_sections": request.max_sections,
+        "model": request.model,
+        "source": request.source,
+        "follow_guidelines": request.follow_guidelines,
+        "guidelines": request.guidelines,
+        "include_human_feedback": request.include_human_feedback,
+        "verbose": request.verbose,
+        "language": request.language,
+        "report_format": request.report_format,
+        "publish_formats": {
+            "markdown": True,
+            "pdf": False,
+            "docx": False
+        }
+    }
+    
+    try:
+        logger.info(f"Starting multi-agent research for query: {request.query}")
+        
+        # Create and run the chief editor agent
+        chief_editor = ChiefEditorAgent(task=task, websocket=None, stream_output=None)
+        result = await chief_editor.run_research_task(task_id=uuid.uuid4())
+        
+        # Extract the report from the result
+        report = result.get("report", "")
+        
+        logger.info(f"Research completed for query: {request.query}")
+        
+        return {
+            "success": True,
+            "query": request.query,
+            "report": report,
+            "title": result.get("title", ""),
+            "sources": result.get("sources", [])
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in multi-agent research: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Research failed: {str(e)}")
+
+
 @app.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
     return await handle_file_upload(file, DOC_PATH)
