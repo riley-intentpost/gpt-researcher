@@ -8,11 +8,23 @@ https://web-production-6dd8.up.railway.app
 
 ---
 
-## Endpoint: Run Multi-Agent Research
+## Endpoint: Run Research
 
 ### `POST /api/research`
 
-Conducts comprehensive multi-agent research on any topic and returns a structured report with citations.
+Conducts research on any topic and returns a structured report with citations.
+
+### Report Types
+
+| Type | Value | Speed | Best For |
+|------|-------|-------|----------|
+| **Summary** | `research_report` | ~2 min | Quick answers, overviews |
+| **Detailed** | `detailed_report` | ~5 min | In-depth single-topic research |
+| **Resource** | `resource_report` | ~3 min | Curated list of sources |
+| **Deep** | `deep` | ~10+ min | Exhaustive recursive research |
+| **Multi-Agent** | `multi_agents` | ~5-10 min | Comprehensive reports with multiple AI agents |
+
+---
 
 ### Request
 
@@ -26,24 +38,25 @@ Content-Type: application/json
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `query` | string | ✅ Yes | — | The research question or topic |
-| `max_sections` | integer | No | `3` | Number of sections in the report (1-10) |
-| `model` | string | No | `"xai:grok-3-mini"` | LLM model in `provider:model` format |
-| `source` | string | No | `"web"` | Research source: `"web"` or `"local"` |
-| `language` | string | No | `"english"` | Output language |
-| `report_format` | string | No | `"APA"` | Citation format: `"APA"`, `"MLA"`, `"Chicago"`, `"Harvard"` |
-| `follow_guidelines` | boolean | No | `false` | Whether to follow custom guidelines |
-| `guidelines` | array | No | `[]` | List of custom guidelines (strings) |
-| `verbose` | boolean | No | `true` | Enable detailed logging |
+| `report_type` | string | No | `"research_report"` | Type of report (see table above) |
+| `report_source` | string | No | `"web"` | Source: `"web"` or `"local"` |
+| `tone` | string | No | `"Objective"` | Writing tone (see tones below) |
 
-### Supported Models
+**Multi-Agent Only Parameters** (when `report_type="multi_agents"`):
 
-| Provider | Model | Format |
-|----------|-------|--------|
-| xAI | Grok 3 Mini | `"xai:grok-3-mini"` |
-| xAI | Grok 3 | `"xai:grok-3"` |
-| OpenAI | GPT-4o | `"openai:gpt-4o"` |
-| OpenAI | GPT-4o Mini | `"openai:gpt-4o-mini"` |
-| Anthropic | Claude 3.5 Sonnet | `"anthropic:claude-3-5-sonnet-20241022"` |
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `max_sections` | integer | `3` | Number of report sections (1-10) |
+| `language` | string | `"english"` | Output language |
+| `report_format` | string | `"APA"` | Citation format |
+| `follow_guidelines` | boolean | `false` | Use custom guidelines |
+| `guidelines` | array | `[]` | Custom guideline strings |
+
+### Available Tones
+
+`Objective`, `Formal`, `Analytical`, `Persuasive`, `Informative`, `Explanatory`, `Descriptive`, `Critical`, `Comparative`, `Speculative`, `Reflective`, `Narrative`, `Humorous`, `Optimistic`, `Pessimistic`, `Simple`, `Casual`
+
+---
 
 ### Response
 
@@ -52,9 +65,9 @@ Content-Type: application/json
 ```json
 {
   "success": true,
-  "query": "What are the best practices for API authentication?",
-  "title": "Best Practices for API Authentication",
-  "report": "# Best Practices for API Authentication\n\n## Introduction\n\n...(full markdown report)...",
+  "query": "What is quantum computing?",
+  "report_type": "research_report",
+  "report": "# Quantum Computing\n\n...(full markdown report)...",
   "sources": [
     "https://example.com/article1",
     "https://example.com/article2"
@@ -74,7 +87,7 @@ Content-Type: application/json
 
 ## Examples
 
-### Minimal Request (Python)
+### Quick Summary (Fastest)
 
 ```python
 import requests
@@ -82,45 +95,56 @@ import requests
 response = requests.post(
     "https://web-production-6dd8.up.railway.app/api/research",
     json={
-        "query": "What are the emerging trends in renewable energy for 2025?"
+        "query": "What are the benefits of meditation?",
+        "report_type": "research_report"
     },
-    timeout=300  # Research can take 2-5 minutes
+    timeout=180
 )
 
-result = response.json()
-print(result["report"])
+print(response.json()["report"])
 ```
 
-### Full Request (Python)
+### Detailed Report
 
 ```python
-import requests
-
 response = requests.post(
     "https://web-production-6dd8.up.railway.app/api/research",
     json={
-        "query": "Compare React, Vue, and Angular for enterprise applications",
-        "max_sections": 5,
-        "model": "xai:grok-3-mini",
-        "language": "english",
-        "report_format": "APA",
-        "follow_guidelines": True,
-        "guidelines": [
-            "Focus on performance and scalability",
-            "Include code examples where relevant",
-            "Consider enterprise support and ecosystem"
-        ]
+        "query": "Compare PostgreSQL vs MongoDB for web applications",
+        "report_type": "detailed_report",
+        "tone": "Analytical"
     },
     timeout=300
 )
+```
 
-if response.status_code == 200:
-    result = response.json()
-    print(f"Title: {result['title']}")
-    print(f"Sources used: {len(result['sources'])}")
-    print(result["report"])
-else:
-    print(f"Error: {response.json()['detail']}")
+### Multi-Agent (Most Comprehensive)
+
+```python
+response = requests.post(
+    "https://web-production-6dd8.up.railway.app/api/research",
+    json={
+        "query": "The future of renewable energy in 2025",
+        "report_type": "multi_agents",
+        "max_sections": 5,
+        "language": "english",
+        "report_format": "APA"
+    },
+    timeout=600
+)
+```
+
+### Deep Research (Most Exhaustive)
+
+```python
+response = requests.post(
+    "https://web-production-6dd8.up.railway.app/api/research",
+    json={
+        "query": "Complete guide to machine learning algorithms",
+        "report_type": "deep"
+    },
+    timeout=900  # Can take 10-15 minutes
+)
 ```
 
 ### cURL Example
@@ -129,8 +153,8 @@ else:
 curl -X POST "https://web-production-6dd8.up.railway.app/api/research" \
   -H "Content-Type: application/json" \
   -d '{
-    "query": "What is the current state of quantum computing?",
-    "max_sections": 3
+    "query": "What is the current state of AI?",
+    "report_type": "research_report"
   }'
 ```
 
@@ -139,13 +163,10 @@ curl -X POST "https://web-production-6dd8.up.railway.app/api/research" \
 ```javascript
 const response = await fetch("https://web-production-6dd8.up.railway.app/api/research", {
   method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
-    query: "Best practices for microservices architecture",
-    max_sections: 4,
-    model: "xai:grok-3-mini"
+    query: "Best practices for API security",
+    report_type: "detailed_report"
   })
 });
 
@@ -155,26 +176,35 @@ console.log(result.report);
 
 ---
 
+## Choosing the Right Report Type
+
+| Use Case | Recommended Type | Why |
+|----------|------------------|-----|
+| Quick fact check | `research_report` | Fast, concise |
+| Blog post research | `detailed_report` | Thorough, single-agent |
+| Finding resources | `resource_report` | Curated source list |
+| Academic paper | `multi_agents` | Multiple perspectives, citations |
+| Comprehensive guide | `deep` | Recursive, exhaustive |
+
+---
+
 ## Important Notes
 
-### Timeout
-- Research typically takes **2-5 minutes** depending on query complexity
-- Set HTTP timeout to at least **300 seconds (5 minutes)**
-- Complex queries with more sections take longer
+### Timeouts
+- `research_report`: 2-3 minutes → timeout 180s
+- `detailed_report`: 4-6 minutes → timeout 300s
+- `multi_agents`: 5-10 minutes → timeout 600s
+- `deep`: 10-20 minutes → timeout 900s+
 
 ### Rate Limits
-- No built-in rate limiting, but be reasonable
+- No built-in rate limiting
 - Each request triggers multiple web searches and LLM calls
+- Be reasonable with concurrent requests
 
 ### Report Output
-- The `report` field contains **full Markdown** with headers, lists, citations
+- The `report` field contains **full Markdown**
 - Parse as Markdown for rendering
-- Sources are included both inline (as citations) and in the `sources` array
-
-### Error Handling
-- 500 errors include details in the `detail` field
-- Common issues: LLM provider errors, search failures, timeout
-- Implement retry logic for production use
+- Sources included in `sources` array
 
 ---
 
@@ -182,7 +212,7 @@ console.log(result.report);
 
 ### `GET /`
 
-Returns basic server info to verify the API is running.
+Returns basic server info.
 
 ```bash
 curl https://web-production-6dd8.up.railway.app/
@@ -192,17 +222,21 @@ curl https://web-production-6dd8.up.railway.app/
 
 ## Architecture
 
-This API uses a **multi-agent system** with specialized AI agents:
+**Single-Agent Reports** (`research_report`, `detailed_report`, `resource_report`, `deep`):
+- One GPT Researcher agent handles the entire workflow
+- Searches → Scrapes → Analyzes → Writes
 
-1. **Chief Editor** - Orchestrates the research process
-2. **Researcher** - Conducts web searches and gathers sources
-3. **Editor** - Plans report structure and sections
-4. **Writer** - Generates content for each section
-5. **Reviewer** - Reviews and critiques the draft
-6. **Revisor** - Improves content based on feedback
-7. **Publisher** - Formats the final report
+**Multi-Agent Reports** (`multi_agents`):
+- 7 specialized AI agents collaborate:
+  1. Chief Editor (orchestration)
+  2. Researcher (web search)
+  3. Editor (structure planning)
+  4. Writer (content generation)
+  5. Reviewer (quality check)
+  6. Revisor (improvements)
+  7. Publisher (final formatting)
 
-The system uses:
-- **Serper** for Google search (retriever)
-- **Firecrawl** for content extraction (scraper)
-- **xAI Grok** as the default LLM (configurable)
+**Infrastructure:**
+- Serper (Google search)
+- Firecrawl (content extraction)
+- xAI Grok (default LLM)

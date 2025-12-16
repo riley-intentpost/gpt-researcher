@@ -249,80 +249,137 @@ async def run_multi_agents():
     return await execute_multi_agents(manager)
 
 
-class MultiAgentRequest(BaseModel):
-    """Request model for multi-agent research."""
+class ResearchAPIRequest(BaseModel):
+    """Request model for research API - supports all report types."""
     query: str
+    report_type: str = "research_report"  # research_report, detailed_report, resource_report, deep, multi_agents
+    report_source: str = "web"  # web, local
+    tone: str = "Objective"
+    
+    # Multi-agents specific options (only used when report_type="multi_agents")
     max_sections: int = 3
-    model: str = "xai:grok-3-mini"
-    source: str = "web"
     follow_guidelines: bool = False
     guidelines: list = []
-    include_human_feedback: bool = False
-    verbose: bool = True
     language: str = "english"
     report_format: str = "APA"
 
 
 @app.post("/api/research")
-async def run_research(request: MultiAgentRequest, background_tasks: BackgroundTasks):
+async def run_research(request: ResearchAPIRequest):
     """
-    Run multi-agent research and return the report.
+    Run research and return the report.
     
-    This is the main API endpoint for conducting research from external applications.
+    Supports multiple report types:
+    - "research_report": Quick summary (~2 min)
+    - "detailed_report": In-depth report (~5 min)  
+    - "resource_report": List of resources with summaries
+    - "deep": Deep recursive research (~10+ min)
+    - "multi_agents": Multi-agent comprehensive research (~5-10 min)
     
-    Example request:
+    Example requests:
+    
+    Quick summary:
     ```json
-    {
-        "query": "What are the best practices for API authentication?",
-        "max_sections": 3,
-        "model": "xai:grok-3-mini"
-    }
+    {"query": "What is quantum computing?", "report_type": "research_report"}
+    ```
+    
+    Detailed report:
+    ```json
+    {"query": "Compare React vs Vue", "report_type": "detailed_report"}
+    ```
+    
+    Multi-agent (most comprehensive):
+    ```json
+    {"query": "AI trends 2025", "report_type": "multi_agents", "max_sections": 5}
     ```
     """
-    from multi_agents.agents import ChiefEditorAgent
     import uuid
     
-    # Build task configuration
-    task = {
-        "query": request.query,
-        "max_sections": request.max_sections,
-        "model": request.model,
-        "source": request.source,
-        "follow_guidelines": request.follow_guidelines,
-        "guidelines": request.guidelines,
-        "include_human_feedback": request.include_human_feedback,
-        "verbose": request.verbose,
-        "language": request.language,
-        "report_format": request.report_format,
-        "publish_formats": {
-            "markdown": True,
-            "pdf": False,
-            "docx": False
-        }
-    }
-    
     try:
-        logger.info(f"Starting multi-agent research for query: {request.query}")
+        logger.info(f"Starting {request.report_type} research for query: {request.query}")
         
-        # Create and run the chief editor agent
-        chief_editor = ChiefEditorAgent(task=task, websocket=None, stream_output=None)
-        result = await chief_editor.run_research_task(task_id=uuid.uuid4())
+        # Route to multi-agents system
+        if request.report_type == "multi_agents":
+            from multi_agents.agents import ChiefEditorAgent
+            
+            task = {
+                "query": request.query,
+                "max_sections": request.max_sections,
+                "source": request.report_source,
+                "follow_guidelines": request.follow_guidelines,
+                "guidelines": request.guidelines,
+                "include_human_feedback": False,
+                "verbose": True,
+                "language": request.language,
+                "report_format": request.report_format,
+                "publish_formats": {"markdown": True, "pdf": False, "docx": False}
+            }
+            
+            chief_editor = ChiefEditorAgent(task=task, websocket=None, stream_output=None)
+            result = await chief_editor.run_research_task(task_id=uuid.uuid4())
+            
+            return {
+                "success": True,
+                "query": request.query,
+                "report_type": request.report_type,
+                "report": result.get("report", ""),
+                "title": result.get("title", ""),
+                "sources": result.get("sources", [])
+            }
         
-        # Extract the report from the result
-        report = result.get("report", "")
-        
-        logger.info(f"Research completed for query: {request.query}")
-        
-        return {
-            "success": True,
-            "query": request.query,
-            "report": report,
-            "title": result.get("title", ""),
-            "sources": result.get("sources", [])
-        }
+        # Route to single-agent system (BasicReport or DetailedReport)
+        else:
+            from report_type import BasicReport, DetailedReport
+            from gpt_researcher.utils.enum import ReportType
+            
+            # Map tone string to Tone enum
+            tone_value = request.tone
+            
+            # Use DetailedReport for detailed_report type, BasicReport for others
+            if request.report_type == ReportType.DetailedReport.value:
+                researcher = DetailedReport(
+                    query=request.query,
+                    query_domains=[],
+                    report_type=request.report_type,
+                    report_source=request.report_source,
+                    source_urls=[],
+                    document_urls=[],
+                    tone=tone_value,
+                    config_path="",
+                    websocket=None,
+                    headers=None,
+                )
+            else:
+                researcher = BasicReport(
+                    query=request.query,
+                    query_domains=[],
+                    report_type=request.report_type,
+                    report_source=request.report_source,
+                    source_urls=[],
+                    document_urls=[],
+                    tone=tone_value,
+                    config_path="",
+                    websocket=None,
+                    headers=None,
+                )
+            
+            report = await researcher.run()
+            
+            # Get sources from the researcher
+            sources = []
+            if hasattr(researcher, 'gpt_researcher') and hasattr(researcher.gpt_researcher, 'visited_urls'):
+                sources = list(researcher.gpt_researcher.visited_urls)
+            
+            return {
+                "success": True,
+                "query": request.query,
+                "report_type": request.report_type,
+                "report": report,
+                "sources": sources
+            }
         
     except Exception as e:
-        logger.error(f"Error in multi-agent research: {str(e)}", exc_info=True)
+        logger.error(f"Error in research: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Research failed: {str(e)}")
 
 
