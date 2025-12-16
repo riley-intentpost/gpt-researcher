@@ -918,6 +918,12 @@ const GPTResearcher = (() => {
 
         // Update WebSocket status
         updateWebSocketStatus();
+      } else if (data.type === 'costs') {
+        // Display research costs
+        const costsData = data.output;
+        if (costsData && costsData.total_costs !== undefined) {
+          displayResearchCosts(costsData.total_costs, costsData.currency || 'USD');
+        }
       } else if (data.type === 'chat') {
         // Handle chat messages from the AI
         // Remove loading indicator and add AI's response
@@ -1066,6 +1072,61 @@ const GPTResearcher = (() => {
     // Auto-scroll to the bottom of the container
     reportContainer.scrollTop = reportContainer.scrollHeight;
   }
+
+  /**
+   * Display research costs in the UI
+   * @param {number} totalCosts - Total cost in USD
+   * @param {string} currency - Currency code (default: USD)
+   */
+  const displayResearchCosts = (totalCosts, currency = 'USD') => {
+    // Create or update costs display element
+    let costsContainer = document.getElementById('research-costs');
+    if (!costsContainer) {
+      costsContainer = document.createElement('div');
+      costsContainer.id = 'research-costs';
+      costsContainer.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #4ade80;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-family: monospace;
+        font-size: 14px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        border: 1px solid #4ade80;
+        animation: fadeIn 0.3s ease-in;
+      `;
+      document.body.appendChild(costsContainer);
+    }
+
+    // Format the cost nicely
+    const formattedCost = totalCosts < 0.01 
+      ? `< $0.01 ${currency}` 
+      : `$${totalCosts.toFixed(4)} ${currency}`;
+
+    costsContainer.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 18px;">💰</span>
+        <div>
+          <div style="font-size: 11px; color: #94a3b8; margin-bottom: 2px;">Research Cost</div>
+          <div style="font-weight: bold; font-size: 16px;">${formattedCost}</div>
+        </div>
+      </div>
+    `;
+
+    console.log(`Research completed. Estimated cost: ${formattedCost}`);
+
+    // Auto-hide after 30 seconds
+    setTimeout(() => {
+      if (costsContainer) {
+        costsContainer.style.animation = 'fadeOut 0.3s ease-out';
+        setTimeout(() => costsContainer.remove(), 300);
+      }
+    }, 30000);
+  };
 
   const updateDownloadLink = (data) => {
     if (!data.output) {

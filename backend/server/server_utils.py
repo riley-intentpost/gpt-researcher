@@ -100,6 +100,9 @@ class Researcher:
         }
 
 def sanitize_filename(filename: str) -> str:
+    # First, replace newlines and other problematic whitespace with spaces
+    filename = re.sub(r'[\n\r\t]', ' ', filename)
+    
     # Split into components
     prefix, timestamp, *task_parts = filename.split('_')
     task = '_'.join(task_parts)
@@ -111,9 +114,13 @@ def sanitize_filename(filename: str) -> str:
     # Truncate task if needed
     truncated_task = task[:max_task_length] if len(task) > max_task_length else task
     
-    # Reassemble and clean the filename
+    # Reassemble and clean the filename - only allow word chars, spaces, and hyphens
     sanitized = f"{prefix}_{timestamp}_{truncated_task}"
-    return re.sub(r"[^\w\s-]", "", sanitized).strip()
+    # Remove any characters invalid for Windows filenames
+    sanitized = re.sub(r'[<>:"/\\|?*\n\r\t]', '', sanitized)
+    # Collapse multiple spaces and strip
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+    return sanitized
 
 
 async def handle_start_command(websocket, data: str, manager):

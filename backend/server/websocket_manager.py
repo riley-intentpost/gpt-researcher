@@ -177,6 +177,18 @@ async def run_agent(task, report_type, report_source, source_urls, document_urls
         )
         report = await researcher.run()
 
+    # Send final research costs to the frontend
+    if report_type != "multi_agents":
+        research_costs = researcher.gpt_researcher.get_costs()
+        await logs_handler.send_json({
+            "type": "costs",
+            "output": {
+                "total_costs": round(research_costs, 4),
+                "currency": "USD"
+            }
+        })
+        logger.info(f"Research completed. Total estimated cost: ${research_costs:.4f}")
+
     if report_type != "multi_agents" and return_researcher:
         return report, researcher.gpt_researcher
     else:
