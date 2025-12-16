@@ -24,7 +24,7 @@ response = client.runs.create(
 
 ## Task Configuration Options
 
-All options have sensible defaults (xAI as default LLM provider).
+All options have sensible defaults (Cerebras as default LLM provider for speed).
 
 ### Required
 - `query` (str): The research question/topic
@@ -37,10 +37,10 @@ All options have sensible defaults (xAI as default LLM provider).
 - `include_human_feedback` (bool, default=False): Enable human-in-the-loop review
 
 ### LLM Configuration
-- `model` (str, default="grok-3-mini"): Model name for multi-agent tasks
-- `smart_llm` (str, default="xai:grok-3-mini"): Smart LLM in "provider:model" format
-- `fast_llm` (str, default="xai:grok-3-mini"): Fast LLM in "provider:model" format  
-- `strategic_llm` (str, default="xai:grok-3-mini"): Strategic LLM for planning
+- `model` (str, default="llama-3.3-70b"): Model name for multi-agent tasks
+- `smart_llm` (str, default="cerebras:llama-3.3-70b"): Smart LLM in "provider:model" format
+- `fast_llm` (str, default="cerebras:llama-3.3-70b"): Fast LLM in "provider:model" format  
+- `strategic_llm` (str, default="cerebras:llama-3.3-70b"): Strategic LLM for planning
 
 ### Output Configuration
 - `publish_formats` (dict): Output formats {"markdown": true, "pdf": true, "docx": true}

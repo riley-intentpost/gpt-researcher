@@ -33,6 +33,7 @@ _SUPPORTED_PROVIDERS = {
     "vllm_openai",
     "aimlapi",
     "netmind",
+    "cerebras",
 }
 
 NO_SUPPORT_TEMPERATURE_MODELS = [
@@ -246,6 +247,11 @@ class GenericLLMProvider:
             from langchain_netmind import ChatNetmind
 
             llm = ChatNetmind(**kwargs)
+        elif provider == "cerebras":
+            _check_pkg("langchain_cerebras")
+            from langchain_cerebras import ChatCerebras
+
+            llm = ChatCerebras(**kwargs)
         else:
             supported = ", ".join(_SUPPORTED_PROVIDERS)
             raise ValueError(
